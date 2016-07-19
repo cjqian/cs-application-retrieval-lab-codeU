@@ -17,7 +17,7 @@ import redis.clients.jedis.Jedis;
  *
  */
 public class WikiSearch {
-	
+
 	// map from URLs that contain the term(s) to relevance score
 	private Map<String, Integer> map;
 
@@ -29,7 +29,7 @@ public class WikiSearch {
 	public WikiSearch(Map<String, Integer> map) {
 		this.map = map;
 	}
-	
+
 	/**
 	 * Looks up the relevance of a given URL.
 	 * 
@@ -40,7 +40,7 @@ public class WikiSearch {
 		Integer relevance = map.get(url);
 		return relevance==null ? 0: relevance;
 	}
-	
+
 	/**
 	 * Prints the contents in order of term frequency.
 	 * 
@@ -52,7 +52,7 @@ public class WikiSearch {
 			System.out.println(entry);
 		}
 	}
-	
+
 	/**
 	 * Computes the union of two search results.
 	 * 
@@ -60,10 +60,19 @@ public class WikiSearch {
 	 * @return New WikiSearch object.
 	 */
 	public WikiSearch or(WikiSearch that) {
-        // FILL THIS IN!
-		return null;
+		// FILL THIS IN!
+		// Start with all in this.
+		Map<String, Integer> union = new HashMap<String, Integer>(this.map);
+
+		// Add all in thiat.
+		for (String key : that.map.keySet()){
+			union.put(key, this.getRelevance(key) + that.getRelevance(key));
+		}
+
+		return new WikiSearch(union);
+
 	}
-	
+
 	/**
 	 * Computes the intersection of two search results.
 	 * 
@@ -71,21 +80,38 @@ public class WikiSearch {
 	 * @return New WikiSearch object.
 	 */
 	public WikiSearch and(WikiSearch that) {
-        // FILL THIS IN!
-		return null;
+		// FILL THIS IN!
+		Map<String, Integer> intersection = new HashMap<String, Integer>();
+
+		// Add all in both this and that.
+		for (String key : this.map.keySet()){
+			if (that.map.containsKey(key)){
+				intersection.put(key, this.getRelevance(key) + that.getRelevance(key));
+			}
+		}
+
+		return new WikiSearch(intersection);
 	}
-	
+
 	/**
-	 * Computes the intersection of two search results.
+	 * Computes the difference of two search results.
 	 * 
 	 * @param that
 	 * @return New WikiSearch object.
 	 */
 	public WikiSearch minus(WikiSearch that) {
-        // FILL THIS IN!
-		return null;
+		// FILL THIS IN!
+		// Start with all in this.
+		Map<String, Integer> difference = new HashMap<String, Integer>(this.map);
+
+		// Remove all in that.
+		for (String key : that.map.keySet()){
+			difference.remove(key);
+		}
+
+		return new WikiSearch(difference);
 	}
-	
+
 	/**
 	 * Computes the relevance of a search with multiple terms.
 	 * 
@@ -104,9 +130,22 @@ public class WikiSearch {
 	 * @return List of entries with URL and relevance.
 	 */
 	public List<Entry<String, Integer>> sort() {
-        // FILL THIS IN!
-		return null;
-	}
+		// FILL THIS IN!
+		// Make new entries. 
+		List<Entry<String, Integer>> entryList = new LinkedList<Entry<String, Integer>>(this.map.entrySet());
+
+		// Make anew comparator.
+		Comparator<Entry<String, Integer>> comparator = new Comparator<Entry<String, Integer>>(){
+			@Override
+			public int compare(Entry<String, Integer> o1, Entry<String, Integer> o2){
+				return o1.getValue().compareTo(o2.getValue());
+			}
+		};
+
+		// Sort and return.
+		Collections.sort(entryList, comparator);
+		return entryList;
+	}	
 
 	/**
 	 * Performs a search and makes a WikiSearch object.
@@ -121,23 +160,23 @@ public class WikiSearch {
 	}
 
 	public static void main(String[] args) throws IOException {
-		
+
 		// make a JedisIndex
 		Jedis jedis = JedisMaker.make();
 		JedisIndex index = new JedisIndex(jedis); 
-		
+
 		// search for the first term
 		String term1 = "java";
 		System.out.println("Query: " + term1);
 		WikiSearch search1 = search(term1, index);
 		search1.print();
-		
+
 		// search for the second term
 		String term2 = "programming";
 		System.out.println("Query: " + term2);
 		WikiSearch search2 = search(term2, index);
 		search2.print();
-		
+
 		// compute the intersection of the searches
 		System.out.println("Query: " + term1 + " AND " + term2);
 		WikiSearch intersection = search1.and(search2);
